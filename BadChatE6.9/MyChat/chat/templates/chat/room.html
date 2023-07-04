@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8"/>
+    <title>MyChat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <ul class="nav justify-content-end" id="profile">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        Здравствуйте, {{ user.username }}. <a href="{% url 'logout' %}" class="btn btn-danger btn-sm">Log out</a>  <a href="/" class="btn btn-primary btn-sm">Домой</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item" >
+                        Здравствуйте, неизвестный пользователь. Пожалуйста <a href="{% url 'login' %}" class="btn btn-primary btn-sm">Войдите</a> или <a href="{% url 'signup' %}" class="btn btn-success btn-sm">Зарегестрируйтесь</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </header>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <div class="container" style="margin-left: auto; margin-right: auto;">
+        <textarea id="chat-log" cols="100" rows="20" style="margin-left: auto; margin-right: auto;"></textarea><br>
+        {% if user.is_authenticated %}
+            <input id="chat-message-input" type="text" placeholder="Пишите сообщение здесь..." size="89">
+            <input class="btn btn-primary" id="chat-message-submit" type="button" value="Send">
+        {{ room_name|json_script:"room-name" }}
+    </div>
+    <script src="{% static 'reconnecting-websocket.js' %}"></script>
+    <script>
+        const roomName = JSON.parse(document.getElementById('room-name').textContent);
+
+        {% for mess in old_messages %}
+        document.querySelector('#chat-log').value += `{{mess.create_datetime|date:"H:i:s" }} {{mess.sender}} : {{mess.text}} \n`;
+        {% endfor %}
+
+        const chatSocket = new ReconnectingWebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            let user
+            if (data.user) {
+                user = data.user
+            } else {
+                user = 'Anonymous'
+            }
+            document.querySelector('#chat-log').value += `${data.time} ${user} : ${data.message} \n`;
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // enter, return
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
+        
+    </script>
+    {% endif %}
+</body>
+</html>
