@@ -45,7 +45,7 @@
 
 Сначала склонируйте репозиторий с Git
 ```bash
-git clone https://github.com/Rom4Rio/ModuleE6.9_homework
+git clone https://github.com/Rom4Rio/ModuleE6.9
 ```
 В директории где находится папка .idea установите виртуальное окружение.
 ```bash
